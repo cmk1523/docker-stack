@@ -1,0 +1,75 @@
+---
+title: "Local"
+subtitle: "Services"
+documentTitle: "Local services"
+header: false
+footer: false
+columns: "4"
+connectivityCheck: false
+
+defaults:
+  layout: list
+  colorTheme: auto
+
+services:
+  - name: Apps
+    icon: "fas fa-grip"
+    items:
+      - name: Keycloak
+        subtitle: Identity
+        logo: "assets/services/keycloak.svg"
+        url: "http://localhost:8080"
+        target: "_blank"
+      - name: Jenkins
+        subtitle: CI
+        logo: "assets/services/jenkins.svg"
+        url: "http://localhost:8081"
+        target: "_blank"
+      - name: Open WebUI
+        subtitle: Chat
+        logo: "assets/services/open-webui.svg"
+        url: "http://localhost:3000"
+        target: "_blank"
+      - name: Kibana
+        subtitle: Search UI
+        logo: "assets/services/kibana.svg"
+        url: "http://localhost:5601"
+        target: "_blank"
+      - name: pgAdmin
+        subtitle: Database
+        logo: "assets/services/pgadmin.svg"
+        url: "http://localhost:5050"
+        target: "_blank"
+      - name: GitLab
+        subtitle: Source
+        logo: "assets/services/gitlab.svg"
+        url: "http://localhost:8929"
+        target: "_blank"
+      - name: Nextcloud
+        subtitle: Files
+        logo: "assets/services/nextcloud.svg"
+        url: "http://localhost:8082"
+        target: "_blank"
+      - name: MinIO
+        subtitle: Objects
+        logo: "assets/services/minio.svg"
+        url: "http://localhost:9001"
+        target: "_blank"
+
+  - name: Data
+    icon: "fas fa-database"
+    items:
+      - name: Elasticsearch
+        subtitle: "localhost:9200"
+        logo: "assets/services/elasticsearch.svg"
+        url: "http://localhost:9200"
+        target: "_blank"
+      - name: Redis
+        subtitle: "localhost:6379"
+        logo: "assets/services/redis.svg"
+      - name: Kafka
+        subtitle: "localhost:9092"
+        logo: "assets/services/kafka.svg"
+      - name: Postgres
+        subtitle: "postgres:5432 on the Compose network"
+        logo: "assets/services/postgres.svg"
