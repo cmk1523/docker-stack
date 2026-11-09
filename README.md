@@ -1,6 +1,6 @@
 # Local Docker stack
 
-Local Keycloak 26 with PostgreSQL 16, Redis 8, Kafka 4, Jenkins 2 LTS, Open WebUI 0, Elasticsearch 9 with Kibana 9, pgAdmin 4 9, GitLab CE 19, Nextcloud 35, MinIO-compatible Silo 2026, and Homer 26. Docker Compose starts the stack. Every published port listens on `127.0.0.1`, so only this machine can open them.
+Local Keycloak 26 with PostgreSQL 16, Redis 8, Kafka 4, Jenkins 2 LTS, Open WebUI 0, Open WebUI Computer 0.9, Elasticsearch 9 with Kibana 9, pgAdmin 4 9, GitLab CE 19, Nextcloud 35, MinIO-compatible Silo 2026, and Homer 26. Docker Compose starts the stack. Every published port listens on `127.0.0.1`, so only this machine can open them.
 
 This stack is for local use. Keycloak runs `start-dev` and serves HTTP. Kafka is a single KRaft broker with plaintext listeners. Elasticsearch is a single node with plaintext HTTP and security enabled. Jenkins skips the setup wizard and signs in with the admin user from `.env`.
 
@@ -58,6 +58,7 @@ Open the dashboard at http://localhost:8090. It links to the services below. Car
 | Keycloak | http://localhost:8080 | `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` |
 | Jenkins | http://localhost:8081 | `JENKINS_ADMIN_ID` / `JENKINS_ADMIN_PASSWORD` |
 | Open WebUI | http://localhost:3000 | the first account you create |
+| Computer | http://localhost:8000 | the account from the first-start setup link |
 | Kibana | http://localhost:5601 | `elastic` / `ELASTIC_PASSWORD` |
 | Elasticsearch | http://localhost:9200 | `elastic` / `ELASTIC_PASSWORD` |
 | pgAdmin | http://localhost:5050 | `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` |
@@ -84,9 +85,11 @@ GitLab SSH clones use `ssh://git@localhost:2224`. Jenkins agents can connect on 
 
 Open WebUI calls LM Studio at `http://host.docker.internal:1234/v1`. `host.docker.internal` is mapped with `extra_hosts`, because `127.0.0.1` inside the container is the container itself. `WEBUI_SECRET_KEY` signs sessions; changing it logs everyone out. Chats stay in the `open_webui_data` volume. If an account already exists, confirm the connection under Admin Settings, Connections.
 
+Computer keeps its account, settings, and chats in the `computer_data` volume. The first start prints a one-time setup link in the logs (`docker compose logs computer`); open that link to create the account. After an account exists, sign in at http://localhost:8000. Files live in `computer/workspace` on this machine, which the container sees as `/workspace`. Add `/workspace` as a workspace in the app. A signed-in user can use the shell and files inside that folder. The same `host.docker.internal` name reaches LM Studio if you point a model at it. The image tag `0.9.21-browser` adds Chromium when an agent needs a browser; this stack uses the default image.
+
 MinIO runs `pgsty/silo`, a MinIO-compatible build. The `minio/minio` image is gone from Docker Hub, and `quay.io/minio/minio` requires a login. The console, S3 API, and root user settings are the same. Buckets stay in the `minio_data` volume.
 
-These accounts are stored on first start and stay in their volumes: Keycloak admin, Jenkins admin, `elastic`, GitLab `root`, Nextcloud admin, and MinIO root. Editing `.env` later leaves them unchanged. `KIBANA_PASSWORD` and `NEXTCLOUD_DB_PASSWORD` are applied again each time their setup containers run.
+These accounts are stored on first start and stay in their volumes: Keycloak admin, Jenkins admin, `elastic`, GitLab `root`, Nextcloud admin, MinIO root, and the Computer account. Editing `.env` later leaves them unchanged. `KIBANA_PASSWORD` and `NEXTCLOUD_DB_PASSWORD` are applied again each time their setup containers run.
 
 ## Restart
 
@@ -102,7 +105,7 @@ Restart one service by its Compose name. The others keep running:
 docker compose restart keycloak
 ```
 
-Names: `postgres`, `keycloak`, `redis`, `kafka`, `jenkins`, `open-webui`, `elasticsearch`, `elasticsearch-setup`, `kibana`, `pgadmin`, `nextcloud-db-setup`, `nextcloud`, `gitlab`, `minio`, `homer`.
+Names: `postgres`, `keycloak`, `redis`, `kafka`, `jenkins`, `open-webui`, `computer`, `elasticsearch`, `elasticsearch-setup`, `kibana`, `pgadmin`, `nextcloud-db-setup`, `nextcloud`, `gitlab`, `minio`, `homer`.
 
 `elasticsearch-setup` and `nextcloud-db-setup` exit after they finish. Restarting either one runs that setup again.
 
@@ -114,4 +117,4 @@ Names: `postgres`, `keycloak`, `redis`, `kafka`, `jenkins`, `open-webui`, `elast
 docker compose down
 ```
 
-`docker compose down -v` also deletes the PostgreSQL, Redis, Kafka, Jenkins, Open WebUI, Elasticsearch, Kibana, pgAdmin, Nextcloud, GitLab, and MinIO volumes. That removes every realm, Redis value, Kafka topic, Jenkins home, Open WebUI chat and account, Elasticsearch index, Kibana saved object, pgAdmin setting, Nextcloud file and account, GitLab project, and MinIO bucket.
+`docker compose down -v` also deletes the PostgreSQL, Redis, Kafka, Jenkins, Open WebUI, Computer, Elasticsearch, Kibana, pgAdmin, Nextcloud, GitLab, and MinIO volumes. That removes every realm, Redis value, Kafka topic, Jenkins home, Open WebUI chat and account, Computer account and chat, Elasticsearch index, Kibana saved object, pgAdmin setting, Nextcloud file and account, GitLab project, and MinIO bucket. Files in `computer/workspace` stay on this machine.

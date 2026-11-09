@@ -30,6 +30,11 @@ services:
         logo: "assets/services/open-webui.svg"
         url: "http://localhost:3000"
         target: "_blank"
+      - name: Computer
+        subtitle: Files and shell
+        logo: "assets/services/open-webui.svg"
+        url: "http://localhost:8000"
+        target: "_blank"
       - name: Kibana
         subtitle: Search UI
         logo: "assets/services/kibana.svg"

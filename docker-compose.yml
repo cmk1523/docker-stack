@@ -152,6 +152,34 @@ services:
       retries: 12
       start_period: 90s
 
+  computer:
+    image: ghcr.io/open-webui/computer:0.9.21
+    container_name: keycloak-computer
+    restart: unless-stopped
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    working_dir: /workspace
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - computer_data:/data
+      - ../container-workspace:/workspace
+    networks:
+      - default
+      - keycloak-container
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.5.6
     container_name: keycloak-elasticsearch
@@ -427,12 +455,18 @@ services:
       - ./homer/config.yml:/www/assets/config.yml:ro
       - ./homer/icons:/www/assets/services:ro
 
+networks:
+  keycloak-container:
+    name: keycloak-container_default
+    external: true
+
 volumes:
   postgres_data:
   redis_data:
   kafka_data:
   jenkins_data:
   open_webui_data:
+  computer_data:
   elasticsearch_data:
   kibana_data:
   pgadmin_data:

@@ -1,1 +1,3 @@
 .env
+computer/workspace/*
+!computer/workspace/.gitkeep
