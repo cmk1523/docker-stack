@@ -36,6 +36,14 @@ If you change a password, keep these rules:
 - `GITLAB_ROOT_PASSWORD` must be at least 8 characters. It must not contain `gitlab`, `devops`, or any part of the root name, username, or email. GitLab rejects those and then creates no administrator, so sign-in fails.
 - `MINIO_ROOT_PASSWORD` must be at least 8 characters.
 
+Create the external Docker network that the `computer` service joins. Compose declares it as `external`, so it will not create it for you, and `docker compose up` fails without it:
+
+```bash
+docker network create keycloak-container_default
+```
+
+The command only needs to run once per Docker install. If the network already exists, it prints an error you can ignore.
+
 ## Run
 
 ```bash
@@ -49,6 +57,34 @@ docker compose ps
 ```
 
 Open the dashboard at http://localhost:8090. It links to the services below. Cards and labels live in `homer/config.yml`, and the icons live in `homer/icons`.
+
+## Troubleshooting
+
+**`network keycloak-container_default declared as external, but could not be found`**
+Create the network with `docker network create keycloak-container_default`, then run `docker compose up -d` again. Nothing else is wrong. Compose checks this before it starts any container.
+
+**`The "POSTGRES_USER" variable is not set. Defaulting to a blank string.`** (and similar lines for other variables)
+`.env` is missing, or you are running Compose from a different directory. Run `cp .env.example .env` and run Compose from this directory. Do not start the stack with blank variables. Services such as Postgres and Elasticsearch store those blank values on first start. If that already happened, `docker compose down -v` clears it. That deletes all data, so only do it on a fresh stack.
+
+**`permission denied while trying to connect to the docker API`**
+Docker Desktop is not running, or the terminal cannot reach its socket. Start Docker Desktop and try again.
+
+**Other errors on `docker compose up -d`**
+Check which services are unhealthy with `docker compose ps -a`, then read that service's log with `docker compose logs <service>`.
+
+**A port is already in use**
+Every published port is bound to `127.0.0.1` and is fixed in `docker-compose.yml`. Stop whatever else uses it, or change the left side of that `ports` entry. For example, `127.0.0.1:8080:8080` becomes `127.0.0.1:18080:8080`.
+
+**GitLab is slow or returns 502**
+This is normal for the first minute or two, and the first start can take longer. Wait until `docker compose ps gitlab` shows `healthy`. Opening `http://localhost:8929/-/liveness` from your browser returns 404 even when GitLab is fine. The health check runs inside the container, where it works.
+
+**What a working stack looks like**
+These responses are expected and are not errors:
+
+- Elasticsearch at http://localhost:9200 returns `401` without credentials. Use `elastic` / `ELASTIC_PASSWORD`.
+- Keycloak at http://localhost:8080 redirects (`302`) to its admin console.
+- `elasticsearch-setup` and `nextcloud-db-setup` show `Exited (0)`. They run once and stop.
+- Kibana waits for `elasticsearch-setup`, so it starts a little after Elasticsearch.
 
 ## Services
 
