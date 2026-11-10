@@ -78,6 +78,9 @@ Every published port is bound to `127.0.0.1` and is fixed in `docker-compose.yml
 **GitLab is slow or returns 502**
 This is normal for the first minute or two, and the first start can take longer. Wait until `docker compose ps gitlab` shows `healthy`. Opening `http://localhost:8929/-/liveness` from your browser returns 404 even when GitLab is fine. The health check runs inside the container, where it works.
 
+**Open WebUI cannot verify the `http://computer:8000/v1` connection**
+The network path works, so the cause is the API key. Computer returns `401 Invalid API key` for anything but a key created in its admin panel under **API Gateway**. See "Connect Open WebUI, Computer, and LM Studio" below.
+
 **What a working stack looks like**
 These responses are expected and are not errors:
 
@@ -121,11 +124,30 @@ GitLab SSH clones use `ssh://git@localhost:2224`. Jenkins agents can connect on 
 
 Open WebUI calls LM Studio at `http://host.docker.internal:1234/v1`. `host.docker.internal` is mapped with `extra_hosts`, because `127.0.0.1` inside the container is the container itself. `WEBUI_SECRET_KEY` signs sessions; changing it logs everyone out. Chats stay in the `open_webui_data` volume. If an account already exists, confirm the connection under Admin Settings, Connections.
 
-Computer keeps its account, settings, and chats in the `computer_data` volume. The first start prints a one-time setup link in the logs (`docker compose logs computer`); open that link to create the account. After an account exists, sign in at http://localhost:8000. Files live in `computer/workspace` on this machine, which the container sees as `/workspace`. Add `/workspace` as a workspace in the app. A signed-in user can use the shell and files inside that folder. The same `host.docker.internal` name reaches LM Studio if you point a model at it. The image tag `0.9.21-browser` adds Chromium when an agent needs a browser; this stack uses the default image.
+Computer keeps its account, settings, and chats in the `computer_data` volume. The first start prints a one-time setup link in the logs (`docker compose logs computer`); open that link to create the account. After an account exists, sign in at http://localhost:8000. Files live in `../container-workspace` on this machine, which the container sees as `/workspace`. Add `/workspace` as a workspace inside Computer. Computer exposes each workspace as a model, so Open WebUI stays empty until that workspace exists. A signed-in user can use the shell and files inside that folder. The same `host.docker.internal` name reaches LM Studio if you point a model at it. The image tag `0.9.21-browser` adds Chromium when an agent needs a browser; this stack uses the default image.
 
 MinIO runs `pgsty/silo`, a MinIO-compatible build. The `minio/minio` image is gone from Docker Hub, and `quay.io/minio/minio` requires a login. The console, S3 API, and root user settings are the same. Buckets stay in the `minio_data` volume.
 
 These accounts are stored on first start and stay in their volumes: Keycloak admin, Jenkins admin, `elastic`, GitLab `root`, Nextcloud admin, MinIO root, and the Computer account. Editing `.env` later leaves them unchanged. `KIBANA_PASSWORD` and `NEXTCLOUD_DB_PASSWORD` are applied again each time their setup containers run.
+
+## Connect Open WebUI, Computer, and LM Studio
+
+Open WebUI and Computer are separate apps, and each has its own connection settings. Neither one should point at itself.
+
+| Set up in | Connects to | Base URL | API key |
+| --- | --- | --- | --- |
+| Computer (http://localhost:8000) | LM Studio | `http://host.docker.internal:1234/v1` | `LM_STUDIO_API_KEY` (default `lm-studio`) |
+| Open WebUI (http://localhost:3000) | Computer, as an extra provider | `http://computer:8000/v1` | a key created in Computer |
+
+Open WebUI already reaches LM Studio directly through the `OPENAI_API_BASE_URL` and `OPENAI_API_KEY` values in `docker-compose.yml`. Follow the steps below only if you also want Open WebUI to go through Computer.
+
+1. In LM Studio, load a model and start the local server. Turn on "Serve on Local Network" if the containers cannot reach it. From the host, `curl http://localhost:1234/v1/models` should list the model.
+2. In Computer, finish the first-start setup, then add an OpenAI-compatible connection to LM Studio with the base URL and key from the table. Use `host.docker.internal`, not `localhost`, because `localhost` inside a container is the container itself. Turn that model on in Computer and set it as the default. Every model starts inactive, and chats fail while the default is empty.
+3. In Computer, add `/workspace` as a workspace. That folder is `../container-workspace` on this machine. Computer's `/v1/models` lists workspaces, not the LM Studio model, so with no workspace Open WebUI's model menu stays empty even after the connection verifies. The entry is named `cptr/workspace`, not Computer.
+4. In Computer, open the admin panel and go to **API Gateway**. Enter a key name such as `open-webui` and create the key. Copy it right away, because Computer shows it only once. Also pick the gateway model there, so requests to `/v1` have a model to use.
+5. In Open WebUI, go to Admin Settings, Connections, OpenAI. Add a connection with URL `http://computer:8000/v1` and the key from step 4, then verify it. Use the service name `computer`, not `localhost`, since `localhost` inside the Open WebUI container is that container. After you add the workspace, refresh this connection so `cptr/workspace` shows up in the model picker.
+
+If verify fails with `401`, the key is wrong or empty. Computer rejects the LM Studio key (`lm-studio`) with `Invalid API key`. Create a key in **API Gateway** and paste that one. The `docker compose logs open-webui` output shows `POST /openai/verify ... 401` in this case.
 
 ## Restart
 
